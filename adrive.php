@@ -15,7 +15,6 @@ interface Adrive
 	public function getRow($querySql);
 	
 	//执行无结果集的sql语句
-	public function exec($querySql);
 	
 	
 }

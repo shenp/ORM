@@ -14,11 +14,13 @@ class DriverAdapter
 	
 	private static $cache = array();
 	
+	private static $dbType;	//数据库连接方式，暂时只支持pdo
+	
 	
 	public static function getInstance($connection)
 	{
 		//连接方式,暂时只支持PDO 
-		$dbType = 'PDO';
+		$dbType = self::$dbType = 'PDO';
 		$class = $dbType."Drive";
 		
 		self::$connection = $connection;
@@ -48,7 +50,9 @@ class DriverAdapter
 	 */
 	private static function getCacheKey($querySql,$connection)
 	{
-		$cacheKey = md5($querySql['sql'].implode('', $querySql['input']).$connection);
+		$specialArgs = isset($querySql['fetchStyle'])?$querySql['fetchStyle']:'';
+		$input = isset($querySql['input'])?implode('', $querySql['input']):'';
+		$cacheKey = md5($querySql['sql'].$input.$connection.$specialArgs);
 		return $cacheKey;
 	
 	}	
@@ -60,7 +64,10 @@ class DriverAdapter
 	public static function __callStatic($fnName,$arguments)
 	{
 		if (!isset(self::$db_driver[self::$connection]))	return;
-		
+		//兼容不需要sql语句就能操作数据库对象的方法,begintransaction commit rollback
+		if(empty($arguments))
+			return self::$db_driver[self::$connection]->$fnName();
+			
 		$querySql = $arguments[0];
 		$cacheKey = self::getCacheKey($querySql,self::$connection);
 		if (isset(self::$cache[$cacheKey]))
